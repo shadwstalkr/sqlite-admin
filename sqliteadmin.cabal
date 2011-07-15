@@ -58,7 +58,8 @@ Executable sqliteadmin
                        gtk,
                        glade,
                        HDBC,
-                       HDBC-sqlite3
+                       HDBC-sqlite3,
+                       parsec
   
   -- Modules not exported by this package.
   -- Other-modules:       
