@@ -19,6 +19,7 @@ module Main where
 
 import Control.Applicative
 import Data.IORef
+import Data.Maybe
 
 import Graphics.UI.Gtk
 import Graphics.UI.Gtk.Glade
@@ -46,24 +47,49 @@ main = do
 loadMainWinDef :: IORef SqliteDb -> FilePath -> IO MainWindowWidget
 loadMainWinDef dbRef gladePath = do
   Just xml <- xmlNew gladePath
-  setMenuActions dbRef xml
-  MainWindowWidget <$> xmlGetWidget xml castToWindow "mainWindow"
-                   <*> xmlGetWidget xml castToTreeView "structureView"
+  mainWidget <- MainWindowWidget <$> xmlGetWidget xml castToWindow "mainWindow"
+                                 <*> xmlGetWidget xml castToTreeView "structureView"
+  setMenuActions mainWidget dbRef xml
 
-setMenuActions :: IORef SqliteDb -> GladeXML -> IO ()
-setMenuActions dbRef xml = do
+  return mainWidget
+
+setMenuActions :: MainWindowWidget -> IORef SqliteDb -> GladeXML -> IO ()
+setMenuActions mainWidget dbRef xml = do
   openItem <- xmlGetWidget xml castToMenuItem "menuFileOpen"
   quitItem <- xmlGetWidget xml castToMenuItem "menuFileQuit"
 
-  onActivateLeaf openItem $ onFileOpen dbRef
+  onActivateLeaf openItem $ onFileOpen mainWidget dbRef
   onActivateLeaf quitItem mainQuit
 
   return ()
 
-onFileOpen :: IORef SqliteDb -> IO ()
-onFileOpen dbRef = do
-  putStrLn "onFileOpen"
-  return ()
+onFileOpen :: MainWindowWidget -> IORef SqliteDb -> IO ()
+onFileOpen mainWidget dbRef = fileName >>= maybe (return ()) openFile
+    where
+      fileName = getOpenFilename (mainWin mainWidget) "Open SQLite Database"
+
+      openFile path = do
+        db <- openDb path
+        writeIORef dbRef db
+        onDbChanged mainWidget db
+
+onDbChanged :: MainWindowWidget -> SqliteDb -> IO ()
+onDbChanged mainWidget db = return ()
+          
+getOpenFilename :: Window -> String -> IO (Maybe String)
+getOpenFilename parent title = do
+  openDlg <- fileChooserDialogNew
+                 (Just title)
+                 (Just parent)
+                 FileChooserActionOpen
+                 [("gtk-cancel" ,ResponseCancel), ("gtk-open", ResponseAccept)]
+
+  widgetShow openDlg
+  response <- dialogRun openDlg
+  let result = case response of
+                 ResponseAccept -> fileChooserGetFilename openDlg
+                 _              -> return Nothing
+  result <* widgetHide openDlg
 
 {-
 loadMainWinDef2 path = do
