@@ -155,6 +155,8 @@
                   <widget class="GtkTreeView" id="structureView">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
+                    <property name="headers_visible">False</property>
+                    <property name="headers_clickable">False</property>
                   </widget>
                 </child>
               </widget>

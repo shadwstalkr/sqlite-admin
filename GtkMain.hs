@@ -15,22 +15,33 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -}
 
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+
 module Main where
 
 import Control.Applicative
+import Control.Monad.Reader
 import Data.IORef
 import Data.Maybe
+import Data.Tree
 
 import Graphics.UI.Gtk
 import Graphics.UI.Gtk.Glade
 --import Graphics.UI.Gtk.Builder
 
 import SqliteAdmin
+import StructureTree
 
 data MainWindowWidget = MainWindowWidget {
       mainWin :: Window,
       structureView :: TreeView
     }
+
+newtype UIAction a = UIAction (ReaderT MainWindowWidget IO a)
+    deriving (Monad, MonadIO, MonadReader MainWindowWidget)
+
+runAction :: MainWindowWidget -> UIAction a -> IO a
+runAction mainWidget (UIAction action) = runReaderT action mainWidget
 
 main = do
   initGUI
@@ -50,6 +61,7 @@ loadMainWinDef dbRef gladePath = do
   mainWidget <- MainWindowWidget <$> xmlGetWidget xml castToWindow "mainWindow"
                                  <*> xmlGetWidget xml castToTreeView "structureView"
   setMenuActions mainWidget dbRef xml
+  setupStructureView $ structureView mainWidget
 
   return mainWidget
 
@@ -58,23 +70,26 @@ setMenuActions mainWidget dbRef xml = do
   openItem <- xmlGetWidget xml castToMenuItem "menuFileOpen"
   quitItem <- xmlGetWidget xml castToMenuItem "menuFileQuit"
 
-  onActivateLeaf openItem $ onFileOpen mainWidget dbRef
+  onActivateLeaf openItem . runAction mainWidget $ onFileOpen dbRef
   onActivateLeaf quitItem mainQuit
 
   return ()
 
-onFileOpen :: MainWindowWidget -> IORef SqliteDb -> IO ()
-onFileOpen mainWidget dbRef = fileName >>= maybe (return ()) openFile
+onFileOpen :: IORef SqliteDb -> UIAction ()
+onFileOpen dbRef = fileName >>= maybe (return ()) openFile
     where
-      fileName = getOpenFilename (mainWin mainWidget) "Open SQLite Database"
+      fileName = do
+        parent <- asks mainWin
+        liftIO $ getOpenFilename parent "Open SQLite Database"
 
       openFile path = do
-        db <- openDb path
-        writeIORef dbRef db
-        onDbChanged mainWidget db
+        db <- liftIO $ openDb path
+        liftIO $ writeIORef dbRef db
+        onDbChanged db
 
-onDbChanged :: MainWindowWidget -> SqliteDb -> IO ()
-onDbChanged mainWidget db = return ()
+onDbChanged :: SqliteDb -> UIAction ()
+onDbChanged SqliteDbClosed = return ()
+onDbChanged db = asks structureView >>= liftIO . setStructureViewDb db
           
 getOpenFilename :: Window -> String -> IO (Maybe String)
 getOpenFilename parent title = do
