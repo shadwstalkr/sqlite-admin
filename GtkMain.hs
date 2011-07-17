@@ -20,7 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 module Main where
 
 import Control.Applicative
-import Control.Monad.Reader
+import Control.Monad.State
 import Data.IORef
 import Data.Maybe
 import Data.Tree
@@ -34,14 +34,16 @@ import StructureTree
 
 data MainWindowWidget = MainWindowWidget {
       mainWin :: Window,
-      structureView :: TreeView
+      structureView :: StructureTreeView
     }
 
-newtype UIAction a = UIAction (ReaderT MainWindowWidget IO a)
-    deriving (Monad, MonadIO, MonadReader MainWindowWidget)
+newtype UIAction a = UIAction (StateT MainWindowWidget IO a)
+    deriving (Monad, MonadIO, MonadState MainWindowWidget)
 
-runAction :: MainWindowWidget -> UIAction a -> IO a
-runAction mainWidget (UIAction action) = runReaderT action mainWidget
+runAction :: IORef MainWindowWidget -> UIAction a -> IO a
+runAction mainWidgetRef (UIAction action) =
+    readIORef mainWidgetRef >>= runStateT action >>= \(result, state) ->
+        writeIORef mainWidgetRef state >> return result
 
 main = do
   initGUI
@@ -59,18 +61,23 @@ loadMainWinDef :: IORef SqliteDb -> FilePath -> IO MainWindowWidget
 loadMainWinDef dbRef gladePath = do
   Just xml <- xmlNew gladePath
   mainWidget <- MainWindowWidget <$> xmlGetWidget xml castToWindow "mainWindow"
-                                 <*> xmlGetWidget xml castToTreeView "structureView"
-  setMenuActions mainWidget dbRef xml
-  setupStructureView $ structureView mainWidget
+                                 <*> (setupStructureView =<< structViewWidget xml)
+  mainWidgetRef <- newIORef mainWidget
+  modifyIORef mainWidgetRef $ \w ->
+      w {structureView = setOnTableRowActivated (structureView w) $ traCallback mainWidgetRef}
+  setMenuActions mainWidgetRef dbRef xml
 
-  return mainWidget
+  readIORef mainWidgetRef
 
-setMenuActions :: MainWindowWidget -> IORef SqliteDb -> GladeXML -> IO ()
-setMenuActions mainWidget dbRef xml = do
+    where structViewWidget xml = xmlGetWidget xml castToTreeView "structureView"
+          traCallback mainWidgetRef db table = runAction mainWidgetRef $ activateTable db table
+
+setMenuActions :: IORef MainWindowWidget -> IORef SqliteDb -> GladeXML -> IO ()
+setMenuActions mainWidgetRef dbRef xml = do
   openItem <- xmlGetWidget xml castToMenuItem "menuFileOpen"
   quitItem <- xmlGetWidget xml castToMenuItem "menuFileQuit"
 
-  onActivateLeaf openItem . runAction mainWidget $ onFileOpen dbRef
+  onActivateLeaf openItem . runAction mainWidgetRef $ onFileOpen dbRef
   onActivateLeaf quitItem mainQuit
 
   return ()
@@ -79,7 +86,7 @@ onFileOpen :: IORef SqliteDb -> UIAction ()
 onFileOpen dbRef = fileName >>= maybe (return ()) openFile
     where
       fileName = do
-        parent <- asks mainWin
+        parent <- gets mainWin
         liftIO $ getOpenFilename parent "Open SQLite Database"
 
       openFile path = do
@@ -89,7 +96,9 @@ onFileOpen dbRef = fileName >>= maybe (return ()) openFile
 
 onDbChanged :: SqliteDb -> UIAction ()
 onDbChanged SqliteDbClosed = return ()
-onDbChanged db = asks structureView >>= liftIO . setStructureViewDb db
+onDbChanged db = do
+  newStructureView <- gets structureView >>= liftIO . setStructureViewDb db
+  modify $ \widget -> widget {structureView = newStructureView}
           
 getOpenFilename :: Window -> String -> IO (Maybe String)
 getOpenFilename parent title = do
@@ -105,6 +114,10 @@ getOpenFilename parent title = do
                  ResponseAccept -> fileChooserGetFilename openDlg
                  _              -> return Nothing
   result <* widgetHide openDlg
+
+activateTable :: SqliteDb -> String -> UIAction ()
+activateTable SqliteDbClosed _ = return ()
+activateTable db table = liftIO $ putStrLn table
 
 {-
 loadMainWinDef2 path = do
