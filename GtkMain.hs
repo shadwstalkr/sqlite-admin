@@ -20,6 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 module Main where
 
 import Control.Applicative
+import Control.Monad
 import Control.Monad.State
 import Data.IORef
 import Data.Maybe
@@ -34,7 +35,8 @@ import StructureTree
 
 data MainWindowWidget = MainWindowWidget {
       mainWin :: Window,
-      structureView :: StructureTreeView
+      structureView :: StructureTreeView,
+      infoContainer :: Notebook
     }
 
 newtype UIAction a = UIAction (StateT MainWindowWidget IO a)
@@ -62,6 +64,7 @@ loadMainWinDef dbRef gladePath = do
   Just xml <- xmlNew gladePath
   mainWidget <- MainWindowWidget <$> xmlGetWidget xml castToWindow "mainWindow"
                                  <*> (setupStructureView =<< structViewWidget xml)
+                                 <*> xmlGetWidget xml castToNotebook "infoContainer"
   mainWidgetRef <- newIORef mainWidget
   modifyIORef mainWidgetRef $ \w ->
       w {structureView = setOnTableRowActivated (structureView w) $ traCallback mainWidgetRef}
@@ -95,8 +98,9 @@ onFileOpen dbRef = fileName >>= maybe (return ()) openFile
         onDbChanged db
 
 onDbChanged :: SqliteDb -> UIAction ()
-onDbChanged SqliteDbClosed = return ()
+onDbChanged SqliteDbClosed = clearInfoPages
 onDbChanged db = do
+  clearInfoPages
   newStructureView <- gets structureView >>= liftIO . setStructureViewDb db
   modify $ \widget -> widget {structureView = newStructureView}
           
@@ -117,7 +121,16 @@ getOpenFilename parent title = do
 
 activateTable :: SqliteDb -> String -> UIAction ()
 activateTable SqliteDbClosed _ = return ()
-activateTable db table = liftIO $ putStrLn table
+activateTable db table = do
+  btn <- liftIO $ buttonNewWithLabel "Test"
+  liftIO $ widgetShow btn
+  info <- gets infoContainer
+  liftIO $ notebookAppendPage info btn table >>= notebookSetCurrentPage info
+  return ()
+
+clearInfoPages :: UIAction ()
+clearInfoPages = gets infoContainer >>= liftIO . doClear >> return ()
+    where doClear info = notebookGetNPages info >>= (flip replicateM) (notebookRemovePage info 0)
 
 {-
 loadMainWinDef2 path = do
