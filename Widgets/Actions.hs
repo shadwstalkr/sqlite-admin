@@ -15,36 +15,21 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -}
 
-module Main where
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
-import Control.Applicative
+module Widgets.Actions where
+
 import Control.Monad
+import Control.Monad.State
 import Data.IORef
-import Data.Maybe
-import Data.Tree
 
-import Graphics.UI.Gtk
+import Widgets.Types
 
-import SqliteAdmin
-import Widgets.MainWindow
+newtype UIAction a = UIAction (StateT Widgets IO a)
+    deriving (Monad, MonadIO, MonadState Widgets)
 
-main = do
-  initGUI
+runAction :: IORef Widgets -> UIAction a -> IO a
+runAction mainWidgetRef (UIAction action) =
+    readIORef mainWidgetRef >>= runStateT action >>= \(result, state) ->
+        writeIORef mainWidgetRef state >> return result
 
-  dbRef <- newIORef SqliteDbClosed
-
-  mainWidget <- loadMainWinDef dbRef "mainWindow.glade"
---  mainWidget <- loadMainWinDef2 "mainWindow2.glade"
-  onDestroy (mainWin mainWidget) mainQuit
-
-  widgetShowAll (mainWin mainWidget)
-  mainGUI
-
-
-{-
-loadMainWinDef2 path = do
-  builder <- builderNew
-  builderAddFromFile builder path
-  MainWindowWidget <$> builderGetObject builder castToWindow "mainWindow"
-                   <*> builderGetObject builder castToTreeView "structureView"
--}

@@ -142,64 +142,34 @@
           </packing>
         </child>
         <child>
-          <widget class="GtkHPaned" id="hpaned1">
+          <widget class="GtkNotebook" id="infoContainer">
             <property name="visible">True</property>
             <property name="can_focus">True</property>
             <child>
-              <widget class="GtkScrolledWindow" id="scrolledwindow1">
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="hscrollbar_policy">automatic</property>
-                <property name="vscrollbar_policy">automatic</property>
-                <child>
-                  <widget class="GtkTreeView" id="structureView">
-                    <property name="visible">True</property>
-                    <property name="can_focus">True</property>
-                    <property name="headers_visible">False</property>
-                    <property name="headers_clickable">False</property>
-                  </widget>
-                </child>
-              </widget>
+              <placeholder/>
+            </child>
+            <child>
+              <placeholder/>
               <packing>
-                <property name="resize">False</property>
-                <property name="shrink">True</property>
+                <property name="type">tab</property>
               </packing>
             </child>
             <child>
-              <widget class="GtkNotebook" id="infoContainer">
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <child>
-                  <placeholder/>
-                </child>
-                <child>
-                  <placeholder/>
-                  <packing>
-                    <property name="type">tab</property>
-                  </packing>
-                </child>
-                <child>
-                  <placeholder/>
-                </child>
-                <child>
-                  <placeholder/>
-                  <packing>
-                    <property name="type">tab</property>
-                  </packing>
-                </child>
-                <child>
-                  <placeholder/>
-                </child>
-                <child>
-                  <placeholder/>
-                  <packing>
-                    <property name="type">tab</property>
-                  </packing>
-                </child>
-              </widget>
+              <placeholder/>
+            </child>
+            <child>
+              <placeholder/>
               <packing>
-                <property name="resize">True</property>
-                <property name="shrink">True</property>
+                <property name="type">tab</property>
+              </packing>
+            </child>
+            <child>
+              <placeholder/>
+            </child>
+            <child>
+              <placeholder/>
+              <packing>
+                <property name="type">tab</property>
               </packing>
             </child>
           </widget>

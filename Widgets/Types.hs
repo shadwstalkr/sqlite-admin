@@ -15,36 +15,12 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -}
 
-module Main where
-
-import Control.Applicative
-import Control.Monad
-import Data.IORef
-import Data.Maybe
-import Data.Tree
+module Widgets.Types where
 
 import Graphics.UI.Gtk
 
-import SqliteAdmin
-import Widgets.MainWindow
+data Widgets = Widgets {
+      mainWin :: Window,
+      infoContainer :: Notebook
+    }
 
-main = do
-  initGUI
-
-  dbRef <- newIORef SqliteDbClosed
-
-  mainWidget <- loadMainWinDef dbRef "mainWindow.glade"
---  mainWidget <- loadMainWinDef2 "mainWindow2.glade"
-  onDestroy (mainWin mainWidget) mainQuit
-
-  widgetShowAll (mainWin mainWidget)
-  mainGUI
-
-
-{-
-loadMainWinDef2 path = do
-  builder <- builderNew
-  builderAddFromFile builder path
-  MainWindowWidget <$> builderGetObject builder castToWindow "mainWindow"
-                   <*> builderGetObject builder castToTreeView "structureView"
--}
