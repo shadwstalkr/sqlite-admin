@@ -18,6 +18,14 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 module SqliteAdmin
     ( SqliteDb(SqliteDbClosed)
     , openDb
+
+    , dbPath
+    , dbTables
+
+    , colName
+    , Sqlite.Types.colType
+    , colKey
+    , Sqlite.Types.colNullable
     )
 where
 

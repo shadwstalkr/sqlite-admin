@@ -23,6 +23,7 @@ import Control.Monad.State
 import Graphics.UI.Gtk
 
 import SqliteAdmin
+import Widgets.DbTree
 import Widgets.Types
 
 activateTable :: (MonadIO m, MonadState Widgets m) => SqliteDb -> String -> m ()
@@ -37,3 +38,15 @@ activateTable db table = do
 clearInfoPages :: (MonadIO m, MonadState Widgets m) => m ()
 clearInfoPages = gets infoContainer >>= liftIO . doClear >> return ()
     where doClear info = notebookGetNPages info >>= (flip replicateM) (notebookRemovePage info 0)
+
+addDbPage :: (MonadIO m, MonadState Widgets m) => SqliteDb -> m Int
+addDbPage db = addInfoPage "Name" =<< newDbTree db
+
+addInfoPage :: (MonadIO m, MonadState Widgets m, WidgetClass w) => String -> w -> m Int
+addInfoPage title widget = liftIO . doAdd =<< gets infoContainer
+    where
+      doAdd container = do
+        widgetShow widget
+        page <- notebookAppendPage container widget title
+        notebookSetCurrentPage container page
+        return page

@@ -71,3 +71,5 @@ onFileOpen dbRef = fileName >>= maybe (return ()) openFile
 onDbChanged SqliteDbClosed = clearInfoPages
 onDbChanged db = do
   clearInfoPages
+  addDbPage db
+  return ()
