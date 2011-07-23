@@ -31,8 +31,10 @@ import Graphics.UI.Gtk
 import Graphics.UI.Gtk.Glade
 
 import SqliteAdmin
-import Widgets.Types
 import Widgets.Actions
+import Widgets.InfoContainer
+import Widgets.Types
+import Widgets.Utils
 
 loadMainWinDef :: IORef SqliteDb -> FilePath -> IO Widgets
 loadMainWinDef dbRef gladePath = do
@@ -69,31 +71,3 @@ onFileOpen dbRef = fileName >>= maybe (return ()) openFile
 onDbChanged SqliteDbClosed = clearInfoPages
 onDbChanged db = do
   clearInfoPages
-          
-getOpenFilename :: (MonadIO m) => Window -> String -> m (Maybe String)
-getOpenFilename parent title = liftIO $ do
-  openDlg <- fileChooserDialogNew
-                 (Just title)
-                 (Just parent)
-                 FileChooserActionOpen
-                 [("gtk-cancel", ResponseCancel), ("gtk-open", ResponseAccept)]
-
-  widgetShow openDlg
-  response <- dialogRun openDlg
-  let result = case response of
-                 ResponseAccept -> fileChooserGetFilename openDlg
-                 _              -> return Nothing
-  result <* widgetHide openDlg
-
-activateTable :: (MonadIO m, MonadState Widgets m) => SqliteDb -> String -> m ()
-activateTable SqliteDbClosed _ = return ()
-activateTable db table = do
-  btn <- liftIO $ buttonNewWithLabel "Test"
-  liftIO $ widgetShow btn
-  info <- gets infoContainer
-  liftIO $ notebookAppendPage info btn table >>= notebookSetCurrentPage info
-  return ()
-
-clearInfoPages :: (MonadIO m, MonadState Widgets m) => m ()
-clearInfoPages = gets infoContainer >>= liftIO . doClear >> return ()
-    where doClear info = notebookGetNPages info >>= (flip replicateM) (notebookRemovePage info 0)
