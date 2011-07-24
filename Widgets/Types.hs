@@ -17,10 +17,13 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 module Widgets.Types where
 
+import Data.IORef
 import Graphics.UI.Gtk
 
-data Widgets = Widgets {
-      mainWin :: Window,
-      infoContainer :: Notebook
-    }
+data Widgets = NoWidgets
+             | Widgets {
+                 mainWin :: Window,
+                 infoContainer :: Notebook,
+                 widgetsRef :: IORef Widgets
+               }
 

@@ -27,7 +27,7 @@ parseCreateTable :: String -> Either ParseError [ColumnDesc]
 parseCreateTable = parse createTableStmt "(unknown)" . dropWhile isSpace . map toLower
 
 parseTypeName :: String -> SqliteValType
-parseTypeName = either (const SqliteBlob) id . parsed
+parseTypeName = either (const SqliteBlobType) id . parsed
     where
       parsed = parse typeName "(unknown)" . dropWhile isSpace . map toLower
 
@@ -44,10 +44,10 @@ columnDef = ColumnDesc <$> name
                        <*> isPrimaryKey
                        <*> isNotNullable
 
-typeName = option (SqliteBlob) $ SqliteInt <$ (try intTypeName)
-                             <|> SqliteReal <$ (try realTypeName)
-                             <|> SqliteText <$ (try textTypeName)
-                             <|> SqliteBlob <$ (try blobTypeName)
+typeName = option (SqliteBlobType) $ SqliteIntType <$ (try intTypeName)
+                                 <|> SqliteRealType <$ (try realTypeName)
+                                 <|> SqliteTextType <$ (try textTypeName)
+                                 <|> SqliteBlobType <$ (try blobTypeName)
 
 isPrimaryKey = option False (True <$ try primaryKey)
 

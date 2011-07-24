@@ -41,7 +41,9 @@ loadMainWinDef dbRef gladePath = do
   Just xml <- xmlNew gladePath
   mainWidget <- Widgets <$> xmlGetWidget xml castToWindow "mainWindow"
                         <*> xmlGetWidget xml castToNotebook "infoContainer"
+                        <*> newIORef NoWidgets
   mainWidgetRef <- newIORef mainWidget
+  modifyIORef mainWidgetRef $ \widgets -> widgets {widgetsRef = mainWidgetRef}
   setMenuActions mainWidgetRef dbRef xml
 
   readIORef mainWidgetRef

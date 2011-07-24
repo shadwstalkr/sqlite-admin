@@ -17,15 +17,22 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 module Sqlite.Types where
 
+import qualified Data.ByteString as BS
 import Data.List
 import Database.HDBC
 import Database.HDBC.Sqlite3
 
-data SqliteValType = SqliteNull
-                   | SqliteInt
-                   | SqliteReal
-                   | SqliteText
-                   | SqliteBlob
+data SqliteValue = SqliteNull
+                 | SqliteInt  {getSqliteInt  :: Int}
+                 | SqliteReal {getSqliteReal :: Double}
+                 | SqliteText {getSqliteText :: String}
+                 | SqliteBlob {getSqliteBlob :: BS.ByteString}
+                   deriving (Eq, Show)
+
+data SqliteValType = SqliteIntType
+                   | SqliteRealType
+                   | SqliteTextType
+                   | SqliteBlobType
                      deriving (Eq, Show)
                    
 data ColumnDesc = ColumnDesc
@@ -54,3 +61,10 @@ instance Show SqliteDb where
 
 findCol :: String -> [ColumnDesc] -> Maybe ColumnDesc
 findCol name = find (\col -> name == colName col)
+
+convertSqlValue :: SqliteValType -> SqlValue -> SqliteValue
+convertSqlValue _ SqlNull = SqliteNull
+convertSqlValue SqliteIntType val = SqliteInt . fromSql $ val
+convertSqlValue SqliteRealType val = SqliteReal . fromSql $ val
+convertSqlValue SqliteTextType val = SqliteText . fromSql $ val
+convertSqlValue SqliteBlobType val = SqliteBlob . fromSql $ val

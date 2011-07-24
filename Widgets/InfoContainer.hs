@@ -20,10 +20,13 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 module Widgets.InfoContainer where
 
 import Control.Monad.State
-import Graphics.UI.Gtk
+import Graphics.UI.Gtk hiding (get)
+import System.FilePath
 
 import SqliteAdmin
+import Widgets.Actions
 import Widgets.DbTree
+import Widgets.TableBrowser
 import Widgets.Types
 
 activateTable :: (MonadIO m, MonadState Widgets m) => SqliteDb -> String -> m ()
@@ -40,7 +43,16 @@ clearInfoPages = gets infoContainer >>= liftIO . doClear >> return ()
     where doClear info = notebookGetNPages info >>= (flip replicateM) (notebookRemovePage info 0)
 
 addDbPage :: (MonadIO m, MonadState Widgets m) => SqliteDb -> m Int
-addDbPage db = addInfoPage "Name" =<< newDbTree db
+addDbPage db = do
+  actionRunner <- runAction `liftM` gets widgetsRef
+  addInfoPage name =<< newDbTree db (actionRunner . addBrowseTablePage db)
+    where name = takeFileName . dbPath $ db
+
+addBrowseTablePage :: (MonadIO m, MonadState Widgets m) =>
+                      SqliteDb -> String -> m ()
+addBrowseTablePage db table = do
+  addInfoPage table =<< newTableBrowser db table
+  return ()
 
 addInfoPage :: (MonadIO m, MonadState Widgets m, WidgetClass w) => String -> w -> m Int
 addInfoPage title widget = liftIO . doAdd =<< gets infoContainer

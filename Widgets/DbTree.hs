@@ -15,18 +15,21 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -}
 
-{-# LANGUAGE FlexibleContexts, NoMonomorphismRestriction #-}
+{-# LANGUAGE FlexibleContexts #-}
 
 module Widgets.DbTree
     ( newDbTree
     ) where
 
+import Control.Applicative
 import Control.Monad.State
+import Data.List
 import Data.Tree
 import Graphics.UI.Gtk
 
 import SqliteAdmin
 import Widgets.Types
+import Widgets.Utils
 
 data DbTreeRow = TableRow {rowName :: String}
                | ColumnRow {rowName :: String}
@@ -36,15 +39,23 @@ type DbForest = Forest DbTreeRow
 
 newDbTree :: (MonadIO m) =>
              SqliteDb ->
-             m TreeView
+             (String -> IO ()) ->
+             m ScrolledWindow
 
-newDbTree db = liftIO $ do
+newDbTree db browseTableFn = liftIO $ do
   view <- treeViewNew
   (nameCol, nameRenderer) <- addTextColumn view
   treeStore <- treeStoreNew model
   treeViewSetModel view treeStore
   cellLayoutSetAttributes nameCol nameRenderer treeStore $ \row -> [cellText := rowName row]
-  return view
+  setRowActivatedHandler view model browseTableFn
+
+  -- Add the view to a scrolled window
+  win <- scrolledWindowNew Nothing Nothing
+  containerAdd win view
+  widgetShow view
+
+  return win
 
   where
     model = dbTree db
@@ -57,11 +68,8 @@ dbTree = map tableNode . dbTables
       columnNode column = Node (ColumnRow (colName column)) []
 
 
-addTextColumn = flip addColumn cellRendererTextNew
-
-addColumn view rendererNew = do
-  col <- treeViewColumnNew
-  renderer <- rendererNew
-  cellLayoutPackStart col renderer True
-  treeViewAppendColumn view col
-  return (col, renderer)
+setRowActivatedHandler view model browseTableFn = onRowActivated view rowActivated
+    where
+      rowActivated path _ = maybe (return ()) dispatch . nodeAt model $ path
+      dispatch (TableRow name) = browseTableFn name
+      dispatch _ = return ()

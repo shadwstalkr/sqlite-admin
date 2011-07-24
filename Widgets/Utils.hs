@@ -19,6 +19,8 @@ module Widgets.Utils where
 
 import Control.Applicative
 import Control.Monad.Trans
+import Data.List
+import Data.Tree
 import Graphics.UI.Gtk
 
 getOpenFilename :: (MonadIO m) => Window -> String -> m (Maybe String)
@@ -35,3 +37,27 @@ getOpenFilename parent title = liftIO $ do
                  ResponseAccept -> fileChooserGetFilename openDlg
                  _              -> return Nothing
   result <* widgetHide openDlg
+
+-- Get a node in a forest given a tree path
+nodeAt :: Forest a -> TreePath -> Maybe a
+nodeAt _ [] = Nothing
+nodeAt forest (idx:idxs) = rootLabel <$> foldl' step (Just $ forest !! idx) idxs
+    where
+      step Nothing _ = Nothing
+      step (Just node) idx =
+          let children = subForest node
+          in if idx < length children then
+                 Just $ children !! idx
+             else Nothing
+
+addTextColumn :: (TreeViewClass view) => view -> IO (TreeViewColumn, CellRendererText)
+addTextColumn = flip addTreeViewColumn cellRendererTextNew
+
+addTreeViewColumn :: (TreeViewClass view, CellRendererClass renderer) =>
+                     view -> IO renderer -> IO (TreeViewColumn, renderer)
+addTreeViewColumn view rendererNew = do
+  col <- treeViewColumnNew
+  renderer <- rendererNew
+  cellLayoutPackStart col renderer True
+  treeViewAppendColumn view col
+  return (col, renderer)

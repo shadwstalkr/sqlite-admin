@@ -18,6 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 module SqliteAdmin
     ( SqliteDb(SqliteDbClosed)
     , openDb
+    , getAllRows
 
     , dbPath
     , dbTables
@@ -31,7 +32,7 @@ where
 
 import Control.Applicative
 import Control.Monad
-import Database.HDBC
+import Database.HDBC hiding (colType)
 import Database.HDBC.Sqlite3
 import Sqlite.Parser
 import Sqlite.Types
@@ -56,3 +57,10 @@ parseColumnRow (_:name:typeName:notNull:_:pKey:_) = ColumnDesc (fromSql name)
                                                                (parseTypeName (fromSql typeName))
                                                                (fromSql pKey)
                                                                (not (fromSql notNull))
+
+getAllRows :: SqliteDb -> String -> IO [[SqliteValue]]
+getAllRows db table = map convertRow `liftM` quickQuery (dbConn db) ("SELECT * FROM " ++ table) []
+    where
+      convertRow = zipWith ($) columnConverters
+      columnConverters = map (convertSqlValue . colType) columnsDesc
+      Just columnsDesc = lookup table $ dbTables db

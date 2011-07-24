@@ -55,6 +55,7 @@ Executable sqliteadmin
   
   -- Packages needed in order to build this package.
   Build-depends:       base >= 4,
+                       bytestring,
                        containers,
                        filepath,
                        gtk,
@@ -69,4 +70,4 @@ Executable sqliteadmin
   
   -- Extra tools (e.g. alex, hsc2hs, ...) needed to build the source.
   -- Build-tools:         
-  GHC-Options:         -O2
+  -- GHC-Options:         -O2
