@@ -44,7 +44,7 @@ newDbTree :: (MonadIO m) =>
 
 newDbTree db browseTableFn = liftIO $ do
   view <- treeViewNew
-  (nameCol, nameRenderer) <- addTextColumn view
+  (nameCol, nameRenderer) <- addTextColumn view Nothing
   treeStore <- treeStoreNew model
   treeViewSetModel view treeStore
   cellLayoutSetAttributes nameCol nameRenderer treeStore $ \row -> [cellText := rowName row]

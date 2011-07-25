@@ -45,6 +45,12 @@ addViewColumns :: (TypedTreeModelClass model, TreeModelClass (model [SqliteValue
 addViewColumns view model = mapM_ addColumn . zip [0..]
     where
       addColumn (colIdx, dbColumn) = do
-        (col, rend) <- addTextColumn view
-        treeViewColumnSetTitle col $ colName dbColumn
-        cellLayoutSetAttributes col rend model $ \row -> [cellText := getSqliteText (row !! colIdx)]
+        (col, rend) <- addTextColumn view . Just . colName $ dbColumn
+        cellLayoutSetAttributes col rend model $ \row -> [cellText := sqliteValueToString (row !! colIdx)]
+
+sqliteValueToString :: SqliteValue -> String
+sqliteValueToString SqliteNull        = "<NULL>"
+sqliteValueToString (SqliteInt int)   = show int
+sqliteValueToString (SqliteReal real) = show real
+sqliteValueToString (SqliteText txt)  = txt
+sqliteValueToString (SqliteBlob blob) = "<blob>"

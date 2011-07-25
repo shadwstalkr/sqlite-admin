@@ -65,6 +65,7 @@ intTypeName = string "int" <* optional (string "eger")
 realTypeName = string "real"
                <|> string "double" <* optional (spaces *> string "precision")
                <|> string "float"
+               <|> string "numeric"
 
 textTypeName = string "character" <* optional size
                <|> string "varchar" <* optional size

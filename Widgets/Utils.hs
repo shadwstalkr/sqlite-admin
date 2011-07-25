@@ -20,6 +20,7 @@ module Widgets.Utils where
 import Control.Applicative
 import Control.Monad.Trans
 import Data.List
+import Data.Maybe
 import Data.Tree
 import Graphics.UI.Gtk
 
@@ -50,14 +51,15 @@ nodeAt forest (idx:idxs) = rootLabel <$> foldl' step (Just $ forest !! idx) idxs
                  Just $ children !! idx
              else Nothing
 
-addTextColumn :: (TreeViewClass view) => view -> IO (TreeViewColumn, CellRendererText)
+addTextColumn :: (TreeViewClass view) => view -> Maybe String -> IO (TreeViewColumn, CellRendererText)
 addTextColumn = flip addTreeViewColumn cellRendererTextNew
 
 addTreeViewColumn :: (TreeViewClass view, CellRendererClass renderer) =>
-                     view -> IO renderer -> IO (TreeViewColumn, renderer)
-addTreeViewColumn view rendererNew = do
+                     view -> IO renderer -> Maybe String -> IO (TreeViewColumn, renderer)
+addTreeViewColumn view rendererNew title = do
   col <- treeViewColumnNew
   renderer <- rendererNew
   cellLayoutPackStart col renderer True
+  maybe (return ()) (treeViewColumnSetTitle col) title
   treeViewAppendColumn view col
   return (col, renderer)
